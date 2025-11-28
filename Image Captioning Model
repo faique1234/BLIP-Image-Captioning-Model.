@@ -1,0 +1,329 @@
+{
+  "cells": [
+    {
+      "cell_type": "code",
+      "source": [
+        "import gradio as gr\n",
+        "from transformers import BlipProcessor, BlipForConditionalGeneration\n",
+        "from PIL import Image\n",
+        "\n",
+        "processor = BlipProcessor.from_pretrained(\"Salesforce/blip-image-captioning-base\")\n",
+        "model = BlipForConditionalGeneration.from_pretrained(\"Salesforce/blip-image-captioning-base\")\n",
+        "\n",
+        "def generate_caption(image):\n",
+        "    # Now directly using the PIL Image object\n",
+        "    inputs = processor(images=image, return_tensors=\"pt\")\n",
+        "    outputs = model.generate(**inputs)\n",
+        "    caption = processor.decode(outputs[0], skip_special_tokens=True)\n",
+        "    return caption\n",
+        "\n",
+        "def caption_image(image):\n",
+        "    \"\"\"\n",
+        "    Takes a PIL Image input and returns a caption.\n",
+        "    \"\"\"\n",
+        "    try:\n",
+        "        caption = generate_caption(image)\n",
+        "        return caption\n",
+        "    except Exception as e:\n",
+        "        return f\"An error occurred: {str(e)}\"\n",
+        "\n",
+        "iface = gr.Interface(\n",
+        "    fn=caption_image,\n",
+        "    inputs=gr.Image(type=\"pil\"),\n",
+        "    outputs=\"text\",\n",
+        "    title=\"Image Captioning with BLIP\",\n",
+        "    description=\"Upload an image to generate a caption.\"\n",
+        ")\n",
+        "\n",
+        "iface.launch()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 645
+        },
+        "id": "Hx-HkEu3ol7-",
+        "outputId": "bda440b9-0405-44f4-cb2d-3b1960f912fd"
+      },
+      "execution_count": 24,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "It looks like you are running Gradio on a hosted Jupyter notebook, which requires `share=True`. Automatically setting `share=True` (you can turn this off by setting `share=False` in `launch()` explicitly).\n",
+            "\n",
+            "Colab notebook detected. To show errors in colab notebook, set debug=True in launch()\n",
+            "* Running on public URL: https://bbcc63a51d0223f3ba.gradio.live\n",
+            "\n",
+            "This share link expires in 1 week. For free permanent hosting and GPU upgrades, run `gradio deploy` from the terminal in the working directory to deploy to Hugging Face Spaces (https://huggingface.co/spaces)\n"
+          ]
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.HTML object>"
+            ],
+            "text/html": [
+              "<div><iframe src=\"https://bbcc63a51d0223f3ba.gradio.live\" width=\"100%\" height=\"500\" allow=\"autoplay; camera; microphone; clipboard-read; clipboard-write;\" frameborder=\"0\" allowfullscreen></iframe></div>"
+            ]
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": []
+          },
+          "metadata": {},
+          "execution_count": 24
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Step 1 : Setting up image classification model\n"
+      ],
+      "metadata": {
+        "id": "EX8YZg1T1m1r"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import torch\n",
+        "model  = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)\n",
+        "model.eval()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "collapsed": true,
+        "id": "k_8MIZd8umsQ",
+        "outputId": "032a6599-4ac1-4426-87c1-419ae19d36bb"
+      },
+      "execution_count": 18,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Downloading: \"https://github.com/pytorch/vision/zipball/v0.6.0\" to /root/.cache/torch/hub/v0.6.0.zip\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "/usr/local/lib/python3.12/dist-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.\n",
+            "  warnings.warn(\n",
+            "/usr/local/lib/python3.12/dist-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=ResNet18_Weights.IMAGENET1K_V1`. You can also use `weights=ResNet18_Weights.DEFAULT` to get the most up-to-date weights.\n",
+            "  warnings.warn(msg)\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Downloading: \"https://download.pytorch.org/models/resnet18-f37072fd.pth\" to /root/.cache/torch/hub/checkpoints/resnet18-f37072fd.pth\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "100%|██████████| 44.7M/44.7M [00:00<00:00, 90.3MB/s]\n"
+          ]
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "ResNet(\n",
+              "  (conv1): Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)\n",
+              "  (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "  (relu): ReLU(inplace=True)\n",
+              "  (maxpool): MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)\n",
+              "  (layer1): Sequential(\n",
+              "    (0): BasicBlock(\n",
+              "      (conv1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      (relu): ReLU(inplace=True)\n",
+              "      (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "    )\n",
+              "    (1): BasicBlock(\n",
+              "      (conv1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      (relu): ReLU(inplace=True)\n",
+              "      (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "    )\n",
+              "  )\n",
+              "  (layer2): Sequential(\n",
+              "    (0): BasicBlock(\n",
+              "      (conv1): Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)\n",
+              "      (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      (relu): ReLU(inplace=True)\n",
+              "      (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      (downsample): Sequential(\n",
+              "        (0): Conv2d(64, 128, kernel_size=(1, 1), stride=(2, 2), bias=False)\n",
+              "        (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      )\n",
+              "    )\n",
+              "    (1): BasicBlock(\n",
+              "      (conv1): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      (relu): ReLU(inplace=True)\n",
+              "      (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "    )\n",
+              "  )\n",
+              "  (layer3): Sequential(\n",
+              "    (0): BasicBlock(\n",
+              "      (conv1): Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)\n",
+              "      (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      (relu): ReLU(inplace=True)\n",
+              "      (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      (downsample): Sequential(\n",
+              "        (0): Conv2d(128, 256, kernel_size=(1, 1), stride=(2, 2), bias=False)\n",
+              "        (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      )\n",
+              "    )\n",
+              "    (1): BasicBlock(\n",
+              "      (conv1): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      (relu): ReLU(inplace=True)\n",
+              "      (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "    )\n",
+              "  )\n",
+              "  (layer4): Sequential(\n",
+              "    (0): BasicBlock(\n",
+              "      (conv1): Conv2d(256, 512, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)\n",
+              "      (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      (relu): ReLU(inplace=True)\n",
+              "      (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      (downsample): Sequential(\n",
+              "        (0): Conv2d(256, 512, kernel_size=(1, 1), stride=(2, 2), bias=False)\n",
+              "        (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      )\n",
+              "    )\n",
+              "    (1): BasicBlock(\n",
+              "      (conv1): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "      (relu): ReLU(inplace=True)\n",
+              "      (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)\n",
+              "      (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n",
+              "    )\n",
+              "  )\n",
+              "  (avgpool): AdaptiveAvgPool2d(output_size=(1, 1))\n",
+              "  (fc): Linear(in_features=512, out_features=1000, bias=True)\n",
+              ")"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 18
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import requests\n",
+        "from PIL import Image\n",
+        "from torchvision import transforms\n",
+        "# download human-readable labels for imagenet.\n",
+        "response = requests.get(\"https://git.io/JJkYN\")\n",
+        "labels = response.text.split(\"\\n\")\n",
+        "\n",
+        "def predict(inp):\n",
+        "  inp = transforms.ToTensor()(inp).unsqueeze(0)\n",
+        "  with torch.no_grad():\n",
+        "    prediction= torch.nn.functional.softmax(model(inp)[0], dim=0)\n",
+        "    confidences = {labels[i]: float(prediction[i]) for i in range(1000)}\n",
+        "  return confidences\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "L6jjg2LY7_5y"
+      },
+      "execution_count": 19,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import gradio as gr\n",
+        "\n",
+        "gr.Interface(fn=predict,\n",
+        "       inputs=gr.Image(type=\"pil\"),\n",
+        "       outputs=gr.Label(num_top_classes=3),\n",
+        "       examples=[\"/content/lion.jpg\", \"/content/cheetah.jpg\"]).launch()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 645
+        },
+        "id": "Veo0VUP--XAB",
+        "outputId": "028a3742-fd44-4ca3-a0ad-e9bfb34ee2dd"
+      },
+      "execution_count": 23,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "It looks like you are running Gradio on a hosted Jupyter notebook, which requires `share=True`. Automatically setting `share=True` (you can turn this off by setting `share=False` in `launch()` explicitly).\n",
+            "\n",
+            "Colab notebook detected. To show errors in colab notebook, set debug=True in launch()\n",
+            "* Running on public URL: https://98af9359a38eb1c186.gradio.live\n",
+            "\n",
+            "This share link expires in 1 week. For free permanent hosting and GPU upgrades, run `gradio deploy` from the terminal in the working directory to deploy to Hugging Face Spaces (https://huggingface.co/spaces)\n"
+          ]
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.HTML object>"
+            ],
+            "text/html": [
+              "<div><iframe src=\"https://98af9359a38eb1c186.gradio.live\" width=\"100%\" height=\"500\" allow=\"autoplay; camera; microphone; clipboard-read; clipboard-write;\" frameborder=\"0\" allowfullscreen></iframe></div>"
+            ]
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": []
+          },
+          "metadata": {},
+          "execution_count": 23
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "colab": {
+      "provenance": []
+    },
+    "kernelspec": {
+      "display_name": "Python 3",
+      "name": "python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
